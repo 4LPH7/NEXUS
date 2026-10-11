@@ -6,10 +6,12 @@ An immersive, scroll-controlled 3D website built with React, React Three Fiber, 
 
 - **Scroll-linked cinematic journey** — camera travels through distinct dimensions as you scroll
 - **Interactive 3D experiments** — gravity field, drag-rotation, and morph lab
+- **Specimen gallery** — four distinct interactive objects with keyboard-accessible detail views
 - **Dynamic theme system** — switch between Void, Ember, Ice, and Cosmos color palettes
 - **Reduced motion support** — respects both OS-level and user toggled settings
 - **Responsive design** — works across desktop, tablet, and mobile
 - **WebGL fallback** — gracefully degrades without WebGL
+- **Lazy 3D loading** — the background scene, gallery, and lab canvases load independently
 
 ## Tech Stack
 
@@ -38,13 +40,24 @@ Then open [http://localhost:5173](http://localhost:5173) in your browser.
 - `npm run preview` — preview production build
 - `npm run lint` — run ESLint
 - `npm run typecheck` — run TypeScript type checking
+- `npm run test:e2e` — run Playwright browser checks (Chromium)
 
-## Browser Support
+Playwright requires its Chromium browser; install it with `npx playwright install chromium`.
+
+## Architecture notes
+
+The background canvas stays mounted while the page scrolls. Lenis, scroll measurement, and the camera share the canvas frame loop; interactive lab and gallery canvases mount only when needed. Settings remain in the Zustand store and are applied to both CSS and scene materials. See [DECISIONS.md](DECISIONS.md) for the tradeoffs and verified limits.
+
+No paid services or external runtime APIs are used.
+
+## Browser targets
 
 - Chrome/Edge (latest)
 - Firefox (latest)
 - Safari (latest)
 - Mobile browsers (iOS Safari, Chrome Mobile)
+
+Only Chromium was exercised in this pass; the other targets are not yet verified.
 
 ## Deployment
 
