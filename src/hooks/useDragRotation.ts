@@ -17,6 +17,7 @@ export interface DragRotation {
     onPointerCancel: (e: ReactPointerEvent<Element>) => void
   }
   reset: () => void
+  nudge: (x: number, y: number) => void
 }
 
 export function useDragRotation(): DragRotation {
@@ -61,6 +62,11 @@ export function useDragRotation(): DragRotation {
     velocity.y = 0
   }, [rotation, velocity])
 
+  const nudge = useCallback((x: number, y: number) => {
+    rotation.x += x
+    rotation.y += y
+  }, [rotation])
+
   return {
     rotation,
     velocity,
@@ -72,5 +78,6 @@ export function useDragRotation(): DragRotation {
       onPointerCancel: endDrag,
     },
     reset,
+    nudge,
   }
 }

@@ -38,7 +38,7 @@ function GalleryZone() {
       <FloatingOrReduced>
         <mesh ref={knot} position={[0, 0.3, -100]}>
           <torusKnotGeometry args={[1.5, 0.42, 160, 24]} />
-          <meshPhysicalMaterial color="#151220" metalness={1} roughness={0.18} clearcoat={1} envMapIntensity={1.3} />
+          <meshPhysicalMaterial color={colors.surface} metalness={1} roughness={0.18} clearcoat={1} envMapIntensity={1.3} />
         </mesh>
       </FloatingOrReduced>
       <FloatingOrReduced>
@@ -71,7 +71,7 @@ function PlaygroundZone() {
       <FloatingOrReduced>
         <mesh position={[2.7, -0.7, -142]}>
           <sphereGeometry args={[0.85, 48, 48]} />
-          <meshPhysicalMaterial color="#f0ecff" metalness={0.1} roughness={0.3} clearcoat={1} envMapIntensity={1.1} />
+          <meshPhysicalMaterial color={colors.ink} metalness={0.1} roughness={0.3} clearcoat={1} envMapIntensity={1.1} />
         </mesh>
       </FloatingOrReduced>
       <FloatingOrReduced>

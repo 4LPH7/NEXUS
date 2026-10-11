@@ -1,9 +1,9 @@
 import { NexusButton } from '../components/ui/NexusButton'
 import { Section } from '../components/layout/Section'
 import { Reveal } from '../components/ui/Reveal'
-import { scrollToSection, scrollToTop } from '../lib/lenis'
+import { scrollToSection } from '../lib/lenis'
 
-export function FinalSection() {
+export function FinalSection({ onReplay }: { onReplay: () => void }) {
   return (
     <Section
       id="final"
@@ -27,13 +27,13 @@ export function FinalSection() {
 
         <Reveal delay={0.2}>
           <p className="mx-auto max-w-xl text-lg leading-relaxed text-muted">
-            What will you create next? The tools are in your hands. The dimension is waiting.
+            WHAT WILL YOU CREATE NEXT?
           </p>
         </Reveal>
 
         <Reveal delay={0.35} className="mt-16 flex flex-wrap items-center justify-center gap-6">
-          <NexusButton onClick={() => scrollToTop()}>
-            Replay
+          <NexusButton onClick={onReplay}>
+            Replay the experience
           </NexusButton>
           <NexusButton variant="ghost" onClick={() => scrollToSection('objects')}>
             Explore

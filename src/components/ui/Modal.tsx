@@ -62,7 +62,7 @@ export function Modal({ open, onClose, label, children }: ModalProps) {
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-8" role="presentation">
           <motion.div
-            className="absolute inset-0 bg-[#050508]/85 backdrop-blur-md"
+            className="absolute inset-0 bg-bg/85 backdrop-blur-md"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}

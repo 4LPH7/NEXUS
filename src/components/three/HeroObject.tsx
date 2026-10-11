@@ -40,8 +40,8 @@ export function HeroObject() {
     const g = group.current
     if (!g) return
     const { progress, pointer } = scrollStore
-    const h = progress.hero
     const reduced = isReducedMotion()
+    const h = reduced ? 0 : progress.hero
     const motion = reduced ? 0 : useSettingsStore.getState().motionIntensity
     const time = state.clock.elapsedTime
     const mobile = state.size.width < 768
@@ -72,7 +72,7 @@ export function HeroObject() {
     <group ref={group}>
       <mesh geometry={geometries.core}>
         <meshPhysicalMaterial
-          color="#171320"
+          color={colors.surface}
           metalness={0.85}
           roughness={0.16}
           clearcoat={1}

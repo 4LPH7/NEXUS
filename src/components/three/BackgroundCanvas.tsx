@@ -1,6 +1,7 @@
-import { Canvas, useThree } from '@react-three/fiber'
-import { Environment, Lightformer } from '@react-three/drei'
-import { useEffect } from 'react'
+import { Canvas, useFrame, useThree } from '@react-three/fiber'
+import { Environment, Lightformer, PerformanceMonitor } from '@react-three/drei'
+import { useCallback, useEffect, useState } from 'react'
+import { useRef } from 'react'
 import { useSettingsStore, PRESETS } from '../../state/settingsStore'
 import { useWebGL } from '../../hooks/useWebGL'
 import { useEffectiveReducedMotion } from '../../hooks/useReducedMotion'
@@ -14,6 +15,26 @@ import { ParticleField } from './ParticleField'
 import { TunnelScene } from './TunnelScene'
 import { AmbientZones } from './AmbientZones'
 import { FinalPortal } from './FinalPortal'
+import { advanceLenis } from '../../lib/lenis'
+import { setScrollInvalidator, updateScrollState } from '../../state/scrollStore'
+
+function ContextEvents({ onLost, onRestored }: { onLost: () => void; onRestored: () => void }) {
+  const gl = useThree((state) => state.gl)
+  useEffect(() => {
+    const canvas = gl.domElement
+    const lost = (event: Event) => {
+      event.preventDefault()
+      onLost()
+    }
+    canvas.addEventListener('webglcontextlost', lost)
+    canvas.addEventListener('webglcontextrestored', onRestored)
+    return () => {
+      canvas.removeEventListener('webglcontextlost', lost)
+      canvas.removeEventListener('webglcontextrestored', onRestored)
+    }
+  }, [gl, onLost, onRestored])
+  return null
+}
 
 /** In reduced-motion (demand) mode, keep the frame in sync with settings changes. */
 function InvalidateOnChange() {
@@ -25,6 +46,21 @@ function InvalidateOnChange() {
   return null
 }
 
+function SharedFrameDriver() {
+  const invalidate = useThree((s) => s.invalidate)
+  const setDpr = useThree((s) => s.setDpr)
+  useEffect(() => {
+    setScrollInvalidator(invalidate)
+    return () => setScrollInvalidator(() => undefined)
+  }, [invalidate])
+  useFrame((state) => {
+    advanceLenis(state.clock.elapsedTime * 1000)
+    updateScrollState()
+  }, -2)
+  const qualityDpr = useRef(dprCap()[1])
+  return <PerformanceMonitor onDecline={() => { qualityDpr.current = Math.max(1, qualityDpr.current - 0.25); setDpr(qualityDpr.current) }} onIncline={() => { qualityDpr.current = Math.min(dprCap()[1], qualityDpr.current + 0.125); setDpr(qualityDpr.current) }} />
+}
+
 /**
  * The persistent fixed background canvas: one continuous 3D world the camera
  * travels through as the visitor scrolls. It sits behind all DOM content and
@@ -34,18 +70,23 @@ export function BackgroundCanvas() {
   const webgl = useWebGL()
   const reduced = useEffectiveReducedMotion()
   const colors = useSettingsStore((s) => PRESETS[s.preset].colors)
+  const [contextLost, setContextLost] = useState(false)
+  const handleLost = useCallback(() => setContextLost(true), [])
+  const handleRestored = useCallback(() => setContextLost(false), [])
 
-  if (!webgl) return <SceneFallback />
+  if (!webgl || contextLost) return <SceneFallback />
 
   return (
     <ErrorBoundary fallback={<SceneFallback />}>
-      <div className="pointer-events-none fixed inset-0 -z-10" aria-hidden="true">
+      {contextLost && <SceneFallback />}
+      <div data-reduced-motion={reduced} className={`pointer-events-none fixed inset-0 z-0 ${contextLost ? 'opacity-0' : ''}`} aria-hidden="true">
         <Canvas
           camera={{ position: [0, 0.1, 7.2], fov: 55, near: 0.1, far: 320 }}
           dpr={dprCap()}
           gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
           frameloop={reduced ? 'demand' : 'always'}
         >
+          <ContextEvents onLost={handleLost} onRestored={handleRestored} />
           <fogExp2 attach="fog" args={[colors.bg, 0.014]} />
           <SceneLights />
           <CameraRig />
@@ -55,12 +96,13 @@ export function BackgroundCanvas() {
           <AmbientZones />
           <FinalPortal />
           <Environment resolution={256} frames={1}>
-            <color attach="background" args={['#050507']} />
+            <color attach="background" args={[colors.bg]} />
             <Lightformer form="rect" intensity={4} position={[0, 5, -9]} scale={[10, 4, 1]} color={colors.accent} />
             <Lightformer form="rect" intensity={3} position={[-8, -2, 4]} rotation-y={Math.PI / 2} scale={[8, 3, 1]} color={colors.accent2} />
             <Lightformer form="circle" intensity={2.5} position={[8, 3, 2]} scale={5} color={colors.highlight} />
           </Environment>
           <InvalidateOnChange />
+          <SharedFrameDriver />
         </Canvas>
       </div>
     </ErrorBoundary>

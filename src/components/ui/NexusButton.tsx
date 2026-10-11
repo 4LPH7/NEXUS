@@ -38,7 +38,7 @@ export function NexusButton({ children, onClick, variant = 'primary', className 
     'group relative inline-flex items-center gap-3 px-7 py-4 font-display text-[0.8rem] font-semibold uppercase tracking-[0.22em] transition-colors duration-300 active:scale-[0.97] select-none'
   const styles =
     variant === 'primary'
-      ? 'bg-accent text-[#0a0a10] hover:bg-highlight hover:text-[#0a0a10]'
+        ? 'bg-accent text-bg hover:bg-highlight hover:text-bg'
       : 'border border-line text-ink hover:border-accent hover:text-accent'
 
   return (

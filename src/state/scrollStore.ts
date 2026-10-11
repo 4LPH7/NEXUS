@@ -31,6 +31,7 @@ export const scrollStore = {
   } as Record<SectionId, number>,
   /** Raw pointer position normalized to -1..1 (screen space, y up). */
   pointer: { x: 0, y: 0 },
+  invalidate: (() => undefined) as () => void,
 }
 
 const STICKY_SECTIONS: SectionId[] = ['hero', 'descend']
@@ -106,6 +107,10 @@ export function updateScrollState(): void {
       scrollStore.progress[id] = clamp((vh - topInViewport) / Math.max(m.height + vh, 1), 0, 1)
     }
   }
+}
+
+export function setScrollInvalidator(invalidate: () => void): void {
+  scrollStore.invalidate = invalidate
 }
 
 export function clamp(value: number, min: number, max: number): number {

@@ -12,13 +12,16 @@ export function useSectionProgress(id: SectionId): MotionValue<number> {
   const progress = useMotionValue(0)
 
   useEffect(() => {
-    let raf = 0
     const loop = () => {
       progress.set(scrollStore.progress[id])
-      raf = requestAnimationFrame(loop)
     }
-    raf = requestAnimationFrame(loop)
-    return () => cancelAnimationFrame(raf)
+    window.addEventListener('scroll', loop, { passive: true })
+    window.addEventListener('nexus:lenis-scroll', loop)
+    loop()
+    return () => {
+      window.removeEventListener('scroll', loop)
+      window.removeEventListener('nexus:lenis-scroll', loop)
+    }
   }, [id, progress])
 
   return progress

@@ -8,7 +8,7 @@ export function HeroSection() {
   return (
     <Section
       id="hero"
-      className="relative flex min-h-screen flex-col items-center justify-center px-5 pt-24 md:pt-28"
+      className="relative flex min-h-[100dvh] flex-col items-center justify-center px-5 pt-24 md:pt-28"
       ariaLabel="Portal section — the beginning of the experience"
     >
       <div className="absolute inset-0 -z-10 overflow-hidden">
@@ -17,32 +17,32 @@ export function HeroSection() {
       </div>
 
       <div className="mb-2 text-center font-display text-[0.64rem] font-bold uppercase tracking-[0.32em] text-muted">
-        {SITE.version}
+        DIGITAL EXPERIMENTS / {SITE.version}
       </div>
 
-      <div className="mt-6 mb-10 text-center">
+      <h1 className="mt-6 mb-10 text-center">
         <SplitText
           text="ENTER A"
-          className="font-display mb-2 text-6xl font-bold tracking-tighter text-ink md:text-8xl lg:text-9xl"
+          className="font-display mb-2 block text-[clamp(2.5rem,10.5vw,8rem)] font-bold tracking-tighter text-ink"
           immediate
           delay={0}
           stagger={0.05}
         />
         <SplitText
           text="DIFFERENT"
-          className="font-display mb-2 text-6xl font-bold tracking-tighter text-ink md:text-8xl lg:text-9xl"
+          className="font-display mb-2 block text-[clamp(2.5rem,10.5vw,8rem)] font-bold tracking-tighter text-ink"
           immediate
           delay={0.35}
           stagger={0.05}
         />
         <SplitText
-          text="DIMENSION"
-          className="font-display text-6xl font-bold tracking-tighter text-ink md:text-8xl lg:text-9xl"
+          text="DIMENSION."
+          className="font-display block text-[clamp(2.5rem,10.5vw,8rem)] font-bold tracking-tighter text-ink"
           immediate
           delay={0.65}
           stagger={0.05}
         />
-      </div>
+      </h1>
 
       <p className="mx-auto max-w-lg text-center text-base leading-relaxed text-muted md:text-lg">
         An interactive universe shaped by motion, curiosity, and code.
@@ -50,10 +50,10 @@ export function HeroSection() {
 
       <div className="mt-14 flex flex-wrap items-center justify-center gap-5">
         <NexusButton onClick={() => scrollToSection('descend')}>
-          <span className="uppercase tracking-[0.18em]">Explore</span>
+          <span className="uppercase tracking-[0.18em]">Explore the universe</span>
         </NexusButton>
         <NexusButton variant="ghost" onClick={() => scrollToSection('objects')}>
-          <span className="uppercase tracking-[0.18em]">Experiments</span>
+          <span className="uppercase tracking-[0.18em]">Discover the experiments</span>
         </NexusButton>
       </div>
 

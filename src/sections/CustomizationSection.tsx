@@ -85,7 +85,7 @@ export function CustomizationSection() {
                     }`}
                   >
                     <span
-                      className={`inline-block h-5 w-5 transform rounded-full bg-[#0a0a10] transition-transform ${
+            className={`inline-block h-5 w-5 transform rounded-full bg-bg transition-transform ${
                         reducedMotion ? 'translate-x-6' : 'translate-x-1'
                       }`}
                     />

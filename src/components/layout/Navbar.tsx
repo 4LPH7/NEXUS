@@ -9,15 +9,18 @@ import { Zap, ZapOff, Menu } from 'lucide-react'
 function useActiveSection(): SectionId {
   const [active, setActive] = useState<SectionId>('hero')
   useEffect(() => {
-    let raf = 0
-    const loop = () => {
+    const update = () => {
       const index = Math.min(Math.max(Math.round(scrollStore.journey), 0), SECTION_IDS.length - 1)
       const id = SECTION_IDS[index]!
       setActive((prev) => (prev === id ? prev : id))
-      raf = requestAnimationFrame(loop)
     }
-    raf = requestAnimationFrame(loop)
-    return () => cancelAnimationFrame(raf)
+    window.addEventListener('scroll', update, { passive: true })
+    window.addEventListener('nexus:lenis-scroll', update)
+    update()
+    return () => {
+      window.removeEventListener('scroll', update)
+      window.removeEventListener('nexus:lenis-scroll', update)
+    }
   }, [])
   return active
 }

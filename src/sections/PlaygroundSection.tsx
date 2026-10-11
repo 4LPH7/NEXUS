@@ -1,8 +1,10 @@
+import { lazy, Suspense } from 'react'
 import { Section } from '../components/layout/Section'
 import { Reveal } from '../components/ui/Reveal'
-import { GravityExperiment } from '../components/experiments/GravityExperiment'
-import { DragExperiment } from '../components/experiments/DragExperiment'
-import { MorphLab } from '../components/experiments/MorphLab'
+
+const GravityExperiment = lazy(() => import('../components/experiments/GravityExperiment').then((m) => ({ default: m.GravityExperiment })))
+const DragExperiment = lazy(() => import('../components/experiments/DragExperiment').then((m) => ({ default: m.DragExperiment })))
+const MorphLab = lazy(() => import('../components/experiments/MorphLab').then((m) => ({ default: m.MorphLab })))
 
 export function PlaygroundSection() {
   return (
@@ -34,7 +36,7 @@ export function PlaygroundSection() {
                 <h3 className="font-display text-lg font-semibold tracking-tight text-ink">A. Magnetic Field</h3>
               </div>
               <div className="flex-1">
-                <GravityExperiment />
+                <Suspense fallback={<div className="min-h-64" aria-label="Loading magnetic field" />}><GravityExperiment /></Suspense>
               </div>
             </div>
           </Reveal>
@@ -46,7 +48,7 @@ export function PlaygroundSection() {
                 <h3 className="font-display text-lg font-semibold tracking-tight text-ink">B. Grab & Rotate</h3>
               </div>
               <div className="flex-1">
-                <DragExperiment />
+                <Suspense fallback={<div className="min-h-64" aria-label="Loading grab and rotate" />}><DragExperiment /></Suspense>
               </div>
             </div>
           </Reveal>
@@ -58,7 +60,7 @@ export function PlaygroundSection() {
                 <h3 className="font-display text-lg font-semibold tracking-tight text-ink">C. Morph Lab</h3>
               </div>
               <div className="flex-1">
-                <MorphLab />
+                <Suspense fallback={<div className="min-h-64" aria-label="Loading morph lab" />}><MorphLab /></Suspense>
               </div>
             </div>
           </Reveal>

@@ -49,7 +49,7 @@ export function FinalPortal() {
 
     if (disc.current) {
       const material = disc.current.material as THREE.MeshBasicMaterial
-      material.opacity = (0.1 + Math.sin(time * 0.8) * 0.04) * (0.5 + 0.5 * motion) + 0.05
+      material.opacity = reduced ? 0.15 : (0.1 + Math.sin(time * 0.8) * 0.04) * (0.5 + 0.5 * motion) + 0.05
     }
   })
 

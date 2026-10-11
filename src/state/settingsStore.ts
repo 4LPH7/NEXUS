@@ -11,6 +11,8 @@ export type PresetId = 'void' | 'ember' | 'ice' | 'cosmos'
 export interface PresetColors {
   bg: string
   surface: string
+  ink: string
+  muted: string
   accent: string
   accent2: string
   highlight: string
@@ -25,6 +27,7 @@ export const PRESETS: Record<PresetId, { label: string; colors: PresetColors }> 
     colors: {
       bg: '#07070a',
       surface: '#101016',
+      ink: '#f5f3fa', muted: '#92909f',
       accent: '#9b5cff',
       accent2: '#ff4567',
       highlight: '#68e1ff',
@@ -37,6 +40,7 @@ export const PRESETS: Record<PresetId, { label: string; colors: PresetColors }> 
     colors: {
       bg: '#0a0706',
       surface: '#171010',
+      ink: '#f5f3fa', muted: '#a39b99',
       accent: '#ff4567',
       accent2: '#ff9a5c',
       highlight: '#ffc46b',
@@ -49,6 +53,7 @@ export const PRESETS: Record<PresetId, { label: string; colors: PresetColors }> 
     colors: {
       bg: '#05080c',
       surface: '#0d141d',
+      ink: '#f5f3fa', muted: '#929eac',
       accent: '#68e1ff',
       accent2: '#8fb8ff',
       highlight: '#c9f0ff',
@@ -61,6 +66,7 @@ export const PRESETS: Record<PresetId, { label: string; colors: PresetColors }> 
     colors: {
       bg: '#080611',
       surface: '#140f22',
+      ink: '#f5f3fa', muted: '#9a91aa',
       accent: '#b36bff',
       accent2: '#ff5ce1',
       highlight: '#5c8dff',
@@ -97,9 +103,9 @@ function loadPersisted(): typeof DEFAULT_SETTINGS {
     if (!raw) return { ...DEFAULT_SETTINGS }
     const parsed = JSON.parse(raw) as Partial<typeof DEFAULT_SETTINGS>
     return {
-      preset: parsed.preset && parsed.preset in PRESETS ? parsed.preset : DEFAULT_SETTINGS.preset,
-      particleIntensity: typeof parsed.particleIntensity === 'number' ? parsed.particleIntensity : DEFAULT_SETTINGS.particleIntensity,
-      motionIntensity: typeof parsed.motionIntensity === 'number' ? parsed.motionIntensity : DEFAULT_SETTINGS.motionIntensity,
+      preset: typeof parsed.preset === 'string' && Object.hasOwn(PRESETS, parsed.preset) ? parsed.preset as PresetId : DEFAULT_SETTINGS.preset,
+      particleIntensity: typeof parsed.particleIntensity === 'number' && Number.isFinite(parsed.particleIntensity) ? Math.min(1, Math.max(0, parsed.particleIntensity)) : DEFAULT_SETTINGS.particleIntensity,
+      motionIntensity: typeof parsed.motionIntensity === 'number' && Number.isFinite(parsed.motionIntensity) ? Math.min(1.5, Math.max(0, parsed.motionIntensity)) : DEFAULT_SETTINGS.motionIntensity,
       reducedMotion: typeof parsed.reducedMotion === 'boolean' ? parsed.reducedMotion : DEFAULT_SETTINGS.reducedMotion,
     }
   } catch {
@@ -128,13 +134,14 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
   setPreset: (preset) => {
     set({ preset })
     persist(get())
+    applyPresetToDOM(preset)
   },
   setParticleIntensity: (particleIntensity) => {
-    set({ particleIntensity })
+    set({ particleIntensity: Number.isFinite(particleIntensity) ? Math.min(1, Math.max(0, particleIntensity)) : DEFAULT_SETTINGS.particleIntensity })
     persist(get())
   },
   setMotionIntensity: (motionIntensity) => {
-    set({ motionIntensity })
+    set({ motionIntensity: Number.isFinite(motionIntensity) ? Math.min(1.5, Math.max(0, motionIntensity)) : DEFAULT_SETTINGS.motionIntensity })
     persist(get())
   },
   setReducedMotion: (reducedMotion) => {
@@ -144,15 +151,20 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
   reset: () => {
     set({ ...DEFAULT_SETTINGS })
     persist(get())
+    applyPresetToDOM(DEFAULT_SETTINGS.preset)
   },
 }))
 
 /** Push preset colours into the CSS custom properties used across the UI. */
 export function applyPresetToDOM(preset: PresetId): void {
   const c = PRESETS[preset].colors
-  const root = document.documentElement.style
+  const element = document.documentElement
+  element.dataset.preset = preset
+  const root = element.style
   root.setProperty('--bg', c.bg)
   root.setProperty('--surface', c.surface)
+  root.setProperty('--ink', c.ink)
+  root.setProperty('--muted', c.muted)
   root.setProperty('--accent', c.accent)
   root.setProperty('--accent-2', c.accent2)
   root.setProperty('--highlight', c.highlight)

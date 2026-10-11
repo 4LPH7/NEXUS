@@ -11,7 +11,7 @@ import { particleBudget } from '../../utils/performance'
  * field drifts with the motion-intensity setting.
  */
 export function ParticleField() {
-  const count = particleBudget(1500)
+  const count = particleBudget(4000)
   const intensity = useSettingsStore((s) => s.particleIntensity)
   const highlight = useSettingsStore((s) => PRESETS[s.preset].colors.highlight)
   const group = useRef<THREE.Group>(null)

@@ -18,6 +18,88 @@ interface Params {
   spikes: number // 0 = smooth, 1 = spiky
 }
 
+interface MorphBase {
+  dirs: Float32Array
+  theta: Float32Array
+  phi: Float32Array
+  noise: Float32Array
+}
+
+function MorphScene({ geometry, base, target, colors, lightColor, materialMode }: {
+  geometry: THREE.IcosahedronGeometry
+  base: MorphBase
+  target: Params
+  colors: (typeof PRESETS)[keyof typeof PRESETS]['colors']
+  lightColor: string
+  materialMode: MaterialMode
+}) {
+  const sceneGeometry = useMemo(() => {
+    const next = new THREE.BufferGeometry()
+    next.setAttribute('position', new THREE.BufferAttribute(geometry.attributes.position.array as Float32Array, 3))
+    if (geometry.index) next.setIndex(geometry.index)
+    next.computeVertexNormals()
+    return next
+  }, [geometry])
+  useEffect(() => () => sceneGeometry.dispose(), [sceneGeometry])
+  const current = useRef<Params>({ shape: 0, spikes: 0 })
+  const applied = useRef<Params>({ shape: -1, spikes: -1 })
+
+  useFrame((_, delta) => {
+    const cur = current.current
+    cur.shape = THREE.MathUtils.damp(cur.shape, target.shape, 4, delta)
+    cur.spikes = THREE.MathUtils.damp(cur.spikes, target.spikes, 4, delta)
+    const app = applied.current
+    if (Math.abs(cur.shape - app.shape) < 0.0004 && Math.abs(cur.spikes - app.spikes) < 0.0004) return
+    app.shape = cur.shape
+    app.spikes = cur.spikes
+    const attr = sceneGeometry.attributes.position as THREE.BufferAttribute
+    if (!attr) return
+    const arr = attr.array as Float32Array
+    const count = attr.count
+    const ringR = 1.05
+    const tubeR = 0.62
+    for (let i = 0; i < count; i++) {
+      const nx = base.dirs[i * 3], ny = base.dirs[i * 3 + 1], nz = base.dirs[i * 3 + 2]
+      const sx = nx * RADIUS, sy = ny * RADIUS, sz = nz * RADIUS
+      const tubeAngle = base.phi[i]
+      const rr = ringR + tubeR * Math.cos(tubeAngle)
+      let tx = rr * Math.cos(base.theta[i])
+      const ty = tubeR * Math.sin(tubeAngle)
+      let tz = rr * Math.sin(base.theta[i])
+      const twist = cur.shape * tubeAngle * 0.6
+      const cosT = Math.cos(twist), sinT = Math.sin(twist)
+      const txx = tx * cosT - tz * sinT
+      tz = tx * sinT + tz * cosT
+      tx = txx
+      const ease = cur.shape * cur.shape * (3 - 2 * cur.shape)
+      let x = sx + (tx - sx) * ease
+      let y = sy + (ty - sy) * ease
+      let z = sz + (tz - sz) * ease
+      if (cur.spikes > 0.001) {
+        const len = Math.sqrt(x * x + y * y + z * z) || 1
+        const d = base.noise[i] * cur.spikes * 0.55
+        x += (x / len) * d; y += (y / len) * d; z += (z / len) * d
+      }
+      arr[i * 3] = x; arr[i * 3 + 1] = y; arr[i * 3 + 2] = z
+    }
+    attr.needsUpdate = true
+    sceneGeometry.computeVertexNormals()
+  })
+
+  return <>
+    <ambientLight intensity={0.35} />
+    <pointLight position={[3.5, 3, 4]} intensity={70} distance={20} decay={2} color={lightColor} />
+    <directionalLight position={[-4, 2, 3]} intensity={0.5} color={colors.highlight} />
+    <Environment resolution={64} frames={1}>
+      <color attach="background" args={[colors.bg]} />
+      <Lightformer form="rect" intensity={2.5} position={[0, 4, -6]} scale={[8, 3, 1]} color={colors.accent} />
+    </Environment>
+    <mesh geometry={sceneGeometry}>
+      {materialMode === 'solid' ? <meshStandardMaterial color={colors.accent} emissive={colors.accent} emissiveIntensity={0.08} metalness={0.72} roughness={0.28} envMapIntensity={1.1} /> : <meshPhysicalMaterial transmission={0.92} thickness={1.4} roughness={0.12} ior={1.45} color={colors.ink} attenuationColor={colors.accent} attenuationDistance={2.5} envMapIntensity={1.2} />}
+    </mesh>
+  </>
+}
+
 /**
  * Morph Lab: real per-vertex morphing of one high-resolution icosphere.
  * The "shape" parameter blends sphere vertex positions toward a torus mapping;
@@ -26,8 +108,6 @@ interface Params {
  * are continuous vertex transformations — never a mesh swap.
  */
 export function MorphLab() {
-  const mesh = useRef<THREE.Mesh>(null)
-  const positionsRef = useRef<THREE.BufferAttribute>(null)
   const colors = useSettingsStore((s) => PRESETS[s.preset].colors)
 
   const [target, setTarget] = useState<Params>({ shape: 0, spikes: 0 })
@@ -71,74 +151,6 @@ export function MorphLab() {
 
   useEffect(() => () => geometry.dispose(), [geometry])
 
-  const current = useRef<Params>({ shape: 0, spikes: 0 })
-  const applied = useRef<Params>({ shape: -1, spikes: -1 })
-
-  useFrame((_, delta) => {
-    const cur = current.current
-    cur.shape = THREE.MathUtils.damp(cur.shape, target.shape, 4, delta)
-    cur.spikes = THREE.MathUtils.damp(cur.spikes, target.spikes, 4, delta)
-    const app = applied.current
-    if (Math.abs(cur.shape - app.shape) < 0.0004 && Math.abs(cur.spikes - app.spikes) < 0.0004) return
-    app.shape = cur.shape
-    app.spikes = cur.spikes
-
-    const attr = positionsRef.current
-    if (!attr) return
-    const arr = attr.array as Float32Array
-    const count = attr.count
-
-    // Torus parameters.
-    const ringR = 1.05
-    const tubeR = 0.62
-    for (let i = 0; i < count; i++) {
-      const nx = base.dirs[i * 3]
-      const ny = base.dirs[i * 3 + 1]
-      const nz = base.dirs[i * 3 + 2]
-
-      // Sphere position.
-      const sx = nx * RADIUS
-      const sy = ny * RADIUS
-      const sz = nz * RADIUS
-
-      // Torus position from the vertex's spherical coordinates.
-      const tubeAngle = base.phi[i]
-      const rr = ringR + tubeR * Math.cos(tubeAngle)
-      let tx = rr * Math.cos(base.theta[i])
-      const ty = tubeR * Math.sin(tubeAngle)
-      let tz = rr * Math.sin(base.theta[i])
-
-      // Twist the torus as it forms.
-      const twist = cur.shape * tubeAngle * 0.6
-      const cosT = Math.cos(twist)
-      const sinT = Math.sin(twist)
-      const txx = tx * cosT - tz * sinT
-      tz = tx * sinT + tz * cosT
-      tx = txx
-
-      const shape = cur.shape
-      const ease = shape * shape * (3 - 2 * shape)
-      let x = sx + (tx - sx) * ease
-      let y = sy + (ty - sy) * ease
-      let z = sz + (tz - sz) * ease
-
-      // Spike displacement along the radial direction.
-      if (cur.spikes > 0.001) {
-        const len = Math.sqrt(x * x + y * y + z * z) || 1
-        const d = base.noise[i] * cur.spikes * 0.55
-        x += (x / len) * d
-        y += (y / len) * d
-        z += (z / len) * d
-      }
-
-      arr[i * 3] = x
-      arr[i * 3 + 1] = y
-      arr[i * 3 + 2] = z
-    }
-    attr.needsUpdate = true
-    geometry.computeVertexNormals()
-  })
-
   const reset = () => {
     setTarget({ shape: 0, spikes: 0 })
     setMaterialMode('solid')
@@ -161,31 +173,24 @@ export function MorphLab() {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="relative min-h-0 flex-1">
+      <div
+        className="relative min-h-0 flex-1 touch-pan-y"
+        role="group"
+        tabIndex={0}
+        aria-label="Morph lab. Use arrow keys to change the form or R to reset."
+        onKeyDown={(event) => {
+          if (event.target !== event.currentTarget) return
+          if (event.key === 'ArrowLeft') setTarget((p) => ({ ...p, shape: Math.max(0, p.shape - 0.05) }))
+          else if (event.key === 'ArrowRight') setTarget((p) => ({ ...p, shape: Math.min(1, p.shape + 0.05) }))
+          else if (event.key === 'ArrowUp') setTarget((p) => ({ ...p, spikes: Math.min(1, p.spikes + 0.05) }))
+          else if (event.key === 'ArrowDown') setTarget((p) => ({ ...p, spikes: Math.max(0, p.spikes - 0.05) }))
+          else if (event.key.toLowerCase() === 'r') reset()
+          else return
+          event.preventDefault()
+        }}
+      >
         <ExperimentCanvas className="absolute inset-0" cameraZ={6.8} fov={50} label="Morph lab — a form that reshapes between a sphere and a twisted torus">
-          <ambientLight intensity={0.35} />
-          <pointLight position={[3.5, 3, 4]} intensity={70} distance={20} decay={2} color={lightColor} />
-          <directionalLight position={[-4, 2, 3]} intensity={0.5} color={colors.highlight} />
-          <Environment resolution={64} frames={1}>
-            <color attach="background" args={['#0a0a10']} />
-            <Lightformer form="rect" intensity={2.5} position={[0, 4, -6]} scale={[8, 3, 1]} color={colors.accent} />
-          </Environment>
-          <mesh ref={mesh} geometry={geometry}>
-            {materialMode === 'solid' ? (
-              <meshStandardMaterial color={colors.surface} metalness={0.85} roughness={0.28} envMapIntensity={1.1} />
-            ) : (
-              <meshPhysicalMaterial
-                transmission={0.92}
-                thickness={1.4}
-                roughness={0.12}
-                ior={1.45}
-                color="#ffffff"
-                attenuationColor={colors.accent}
-                attenuationDistance={2.5}
-                envMapIntensity={1.2}
-              />
-            )}
-          </mesh>
+          <MorphScene geometry={geometry} base={base} target={target} colors={colors} lightColor={lightColor} materialMode={materialMode} />
         </ExperimentCanvas>
       </div>
 

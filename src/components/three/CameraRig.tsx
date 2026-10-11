@@ -27,19 +27,14 @@ const KEYFRAMES: Keyframe[] = [
   { pos: [0, 0, -212], look: [0, 0, -228] },
 ]
 
-const smoothstep = (t: number) => t * t * (3 - 2 * t)
+const POSITION_PATH = new THREE.CatmullRomCurve3(KEYFRAMES.map(({ pos }) => new THREE.Vector3(...pos)))
+const LOOK_PATH = new THREE.CatmullRomCurve3(KEYFRAMES.map(({ look }) => new THREE.Vector3(...look)))
 
 export function CameraRig() {
   const camera = useThree((s) => s.camera)
   const targetPos = useRef(new THREE.Vector3(...KEYFRAMES[0].pos))
   const targetLook = useRef(new THREE.Vector3(...KEYFRAMES[0].look))
   const lookCur = useRef(new THREE.Vector3(...KEYFRAMES[0].look))
-  const buf = useRef({
-    a: new THREE.Vector3(),
-    b: new THREE.Vector3(),
-    c: new THREE.Vector3(),
-    d: new THREE.Vector3(),
-  })
 
   useEffect(() => {
     camera.position.set(...KEYFRAMES[0].pos)
@@ -47,16 +42,11 @@ export function CameraRig() {
   }, [camera])
 
   useFrame((state, delta) => {
-    const journey = scrollStore.journey
-    const i = Math.min(Math.floor(journey), KEYFRAMES.length - 2)
-    const t = smoothstep(THREE.MathUtils.clamp(journey - i, 0, 1))
-    const a = KEYFRAMES[i]
-    const b = KEYFRAMES[i + 1]
-    const { a: vA, b: vB, c: lA, d: lB } = buf.current
-    targetPos.current.lerpVectors(vA.set(...a.pos), vB.set(...b.pos), t)
-    targetLook.current.lerpVectors(lA.set(...a.look), lB.set(...b.look), t)
-
     const reduced = isReducedMotion()
+    const progress = reduced ? 0 : THREE.MathUtils.clamp(scrollStore.journey / (KEYFRAMES.length - 1), 0, 1)
+    targetPos.current.copy(POSITION_PATH.getPoint(progress))
+    targetLook.current.copy(LOOK_PATH.getPoint(progress))
+
     const motion = useSettingsStore.getState().motionIntensity
 
     // Pointer parallax plus a slow idle drift, both disabled under reduced motion.
@@ -69,7 +59,7 @@ export function CameraRig() {
       targetLook.current.y += p.y * 0.35 * motion
     }
 
-    const lambda = reduced ? 60 : 2.8
+    const lambda = reduced ? 60 : 5
     const pos = camera.position
     pos.x = THREE.MathUtils.damp(pos.x, targetPos.current.x, lambda, delta)
     pos.y = THREE.MathUtils.damp(pos.y, targetPos.current.y, lambda, delta)

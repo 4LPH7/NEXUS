@@ -1,4 +1,5 @@
 import Lenis from 'lenis'
+import { isReducedMotion } from '../hooks/useReducedMotion'
 
 /*
   Single Lenis instance owns smooth scrolling for the whole page.
@@ -6,7 +7,6 @@ import Lenis from 'lenis'
 */
 
 let lenis: Lenis | null = null
-let rafId = 0
 
 export function getLenis(): Lenis | null {
   return lenis
@@ -18,18 +18,19 @@ export function initLenis(): void {
     duration: 1.15,
     smoothWheel: true,
     syncTouch: false, // keep native momentum on touch devices
+    autoRaf: false,
   })
-  const raf = (time: number) => {
-    lenis?.raf(time)
-    rafId = requestAnimationFrame(raf)
-  }
-  rafId = requestAnimationFrame(raf)
+  lenis.on('scroll', () => window.dispatchEvent(new Event('nexus:lenis-scroll')))
 }
 
 export function destroyLenis(): void {
-  cancelAnimationFrame(rafId)
   lenis?.destroy()
   lenis = null
+}
+
+/** Called by the persistent R3F frame loop so scrolling shares its clock. */
+export function advanceLenis(time: number): void {
+  lenis?.raf(time)
 }
 
 export function stopPageScroll(): void {
@@ -46,7 +47,7 @@ export function resumePageScroll(): void {
 export function scrollToSection(id: string, immediate = false): void {
   const el = document.getElementById(id)
   if (!el) return
-  const reduced = immediate
+  const reduced = immediate || isReducedMotion()
   if (lenis && !reduced) {
     lenis.scrollTo(el, { duration: 1.4 })
   } else {
@@ -55,9 +56,10 @@ export function scrollToSection(id: string, immediate = false): void {
 }
 
 export function scrollToTop(immediate = false): void {
-  if (lenis && !immediate) {
+  const reduced = immediate || isReducedMotion()
+  if (lenis && !reduced) {
     lenis.scrollTo(0, { duration: 1.6 })
   } else {
-    window.scrollTo({ top: 0, behavior: immediate ? 'auto' : 'smooth' })
+    window.scrollTo({ top: 0, behavior: reduced ? 'auto' : 'smooth' })
   }
 }
